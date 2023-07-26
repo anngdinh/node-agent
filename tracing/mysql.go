@@ -3,13 +3,15 @@ package tracing
 import (
 	"encoding/binary"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/coroot/coroot-node-agent/ebpftracer"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.18.0"
 	"go.opentelemetry.io/otel/trace"
-	"strconv"
-	"time"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -20,13 +22,15 @@ const (
 	mysqlMsgHeaderSize  = 4
 )
 
-func handleMysqlQuery(start, end time.Time, r *ebpftracer.L7Request, attrs []attribute.KeyValue, preparedStatements map[string]string) {
+func handleMysqlQuery(containerId string, start, end time.Time, r *ebpftracer.L7Request, attrs []attribute.KeyValue, preparedStatements map[string]string) {
 	query := parseMysql(r.Payload[:], r.StatementId, preparedStatements)
 	if query == "" {
 		return
 	}
 
-	_, span := tracer.Start(nil, "query", trace.WithTimestamp(start), trace.WithSpanKind(trace.SpanKindClient))
+	klog.Infof("---------- query: %s", query)
+
+	_, span := tracer.Start(nil, containerId+" | "+query, trace.WithTimestamp(start), trace.WithSpanKind(trace.SpanKindClient))
 	span.SetAttributes(append(attrs, semconv.DBSystemMySQL, semconv.DBStatement(query))...)
 	if r.Status == 500 {
 		span.SetStatus(codes.Error, "")

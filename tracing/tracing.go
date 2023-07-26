@@ -71,7 +71,7 @@ func HandleL7Request(containerId string, dest netaddr.IPPort, r *ebpftracer.L7Re
 	case ebpftracer.L7ProtocolPostgres:
 		handlePostgresQuery(start, end, r, attrs, preparedStatements)
 	case ebpftracer.L7ProtocolMysql:
-		handleMysqlQuery(start, end, r, attrs, preparedStatements)
+		handleMysqlQuery(containerId, start, end, r, attrs, preparedStatements)
 	case ebpftracer.L7ProtocolMongo:
 		handleMongoQuery(start, end, r, attrs)
 	default:

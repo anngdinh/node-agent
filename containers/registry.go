@@ -3,6 +3,11 @@ package containers
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/coroot/coroot-node-agent/cgroup"
 	"github.com/coroot/coroot-node-agent/common"
 	"github.com/coroot/coroot-node-agent/ebpftracer"
@@ -10,11 +15,8 @@ import (
 	"github.com/coroot/coroot-node-agent/proc"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/vishvananda/netns"
+	"golang.org/x/exp/slices"
 	"k8s.io/klog/v2"
-	"os"
-	"regexp"
-	"strings"
-	"time"
 )
 
 var (
@@ -35,6 +37,8 @@ type Registry struct {
 	containersById       map[ContainerID]*Container
 	containersByCgroupId map[string]*Container
 	containersByPid      map[uint32]*Container
+
+	pidConnMySQL []uint32
 }
 
 func NewRegistry(reg prometheus.Registerer, kernelVersion string) (*Registry, error) {
@@ -88,6 +92,8 @@ func NewRegistry(reg prometheus.Registerer, kernelVersion string) (*Registry, er
 		containersById:       map[ContainerID]*Container{},
 		containersByCgroupId: map[string]*Container{},
 		containersByPid:      map[uint32]*Container{},
+
+		pidConnMySQL: []uint32{},
 	}
 
 	go cs.handleEvents(cs.events)
@@ -153,6 +159,17 @@ func (r *Registry) handleEvents(ch <-chan ebpftracer.Event) {
 			if !more {
 				return
 			}
+
+			if e.DstAddr.String() == "127.0.0.1:3306" {
+				if !slices.Contains(r.pidConnMySQL, e.Pid) {
+					r.pidConnMySQL = append(r.pidConnMySQL, e.Pid)
+				}
+			}
+			if slices.Contains(r.pidConnMySQL, e.Pid) {
+				// mysqlPid := r.containersById["/system.slice/mysql.service"].id
+				e.Pid = 1387
+			}
+
 			switch e.Type {
 			case ebpftracer.EventTypeProcessStart:
 				c, seen := r.containersByPid[e.Pid]
@@ -223,6 +240,8 @@ func (r *Registry) handleEvents(ch <-chan ebpftracer.Event) {
 				}
 				if c := r.containersByPid[e.Pid]; c != nil {
 					c.onL7Request(e.Pid, e.Fd, e.Timestamp, e.L7Request)
+				} else {
+					fmt.Println("no container found for pid:", e.Pid)
 				}
 			}
 		}
@@ -263,12 +282,12 @@ func (r *Registry) getOrCreateContainer(pid uint32) *Container {
 		return nil
 	}
 	id := calcId(cg, md)
-	klog.Infof("calculated container id %d -> %s -> %s", pid, cg.Id, id)
+	// klog.Infof("calculated container id %d -> %s -> %s", pid, cg.Id, id)
 	if id == "" {
 		if cg.Id == "/init.scope" && pid != 1 {
 			klog.InfoS("ignoring without persisting", "cg", cg.Id, "pid", pid)
 		} else {
-			klog.InfoS("ignoring", "cg", cg.Id, "pid", pid)
+			// klog.InfoS("ignoring", "cg", cg.Id, "pid", pid)
 			r.containersByPid[pid] = nil
 		}
 		return nil
