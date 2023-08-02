@@ -62,12 +62,12 @@ func (r *Registry) handleEvents(ch <-chan ebpftracer.Event) {
 		case e, more := <-ch:
 			// if e.Type != ebpftracer.EventTypeFileOpen {
 			// if e.Type != ebpftracer.EventTypeFileOpen && e.Type != ebpftracer.EventTypeProcessStart && e.Type != ebpftracer.EventTypeProcessExit {
-			if e.Type == ebpftracer.EventTypeL7Request {
+			// if e.Type == ebpftracer.EventTypeL7Request {
 				// 	// // if e.Pid == 145575 || e.DstAddr.String() == "172.24.0.2:3306" {
 
-				klog.Info("---- type:", e.Type, "reason:", e.Reason, "pid:", e.Pid, "src:", e.SrcAddr, "dst:", e.DstAddr, "fd:", e.Fd, "ts:", e.Timestamp, "l7:", e.L7Request.Protocol, e.L7Request.Status, e.L7Request.StatementId, e.L7Request.Payload)
+				klog.Info("---- type:", e.Type, "reason:", e.Reason, "pid:", e.Pid, "src:", e.SrcAddr, "dst:", e.DstAddr, "fd:", e.Fd, "ts:", e.Timestamp)
 				// fmt.Println("---- type:", e.Type, "reason:", e.Reason, "pid:", e.Pid, "src:", e.SrcAddr, "dst:", e.DstAddr, "fd:", e.Fd, "ts:", e.Timestamp, "l7:")
-			}
+			// }
 
 			if !more {
 				return

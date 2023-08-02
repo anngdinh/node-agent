@@ -28,12 +28,12 @@ func main() {
 }
 
 func testDB() {
-	db, err := sql.Open("mysql", "annd2:password@tcp(localhost:3306)/mysql")
+	db, err := sql.Open("mysql", "annd2:password@tcp(116.118.89.22:3306)/mysql")
 	if err != nil {
 		panic(err.Error())
 	}
 	defer db.Close()
-	insert, err := db.Query("SELECT * FROM sbtest2")
+	insert, err := db.Query("SELECT * FROM plugin")
 	// insert, err := db.Query("SELECT User                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               FROM user")
 	if err != nil {
 		panic(err.Error())
