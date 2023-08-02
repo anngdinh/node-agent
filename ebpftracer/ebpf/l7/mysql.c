@@ -14,11 +14,25 @@ int is_mysql_query(char *buf, int buf_size, __u8 *request_type) {
     if (buf_size < 1) {
         return 0;
     }
-    __u8 b[5];
+    __u8 b[36];
     if (bpf_probe_read(&b, sizeof(b), (void *)((char *)buf)) < 0) {
         return 0;
     }
     int length = (int)b[0] | (int)b[1] << 8 | (int)b[2] << 16;
+    
+    // check if it's a auth packet (23 bytes 0x00)
+    if (buf_size >= 36) {
+        for (int i = 13; i < 36; i++) {
+            if (b[i] != 0) {
+                break;
+            }
+            if (i == 35) {
+                return 1;
+            }
+        }
+    }
+
+    // check if query packet
     if (length+4 != buf_size || b[3] != 0) { // sequence must be 0
         return 0;
     }
@@ -60,5 +74,5 @@ __u32 parse_mysql_response(char *buf, int buf_size, __u8 request_type, __u32 *st
     if (b[4] == MYSQL_RESPONSE_ERROR) {
         return 500;
     }
-    return 0;
+    return 501;
 }

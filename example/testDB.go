@@ -33,7 +33,7 @@ func testDB() {
 		panic(err.Error())
 	}
 	defer db.Close()
-	insert, err := db.Query("SELECT * FROM sbtest1")
+	insert, err := db.Query("SELECT * FROM sbtest2")
 	// insert, err := db.Query("SELECT User                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               FROM user")
 	if err != nil {
 		panic(err.Error())

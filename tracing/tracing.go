@@ -2,6 +2,9 @@ package tracing
 
 import (
 	"context"
+	"os"
+	"time"
+
 	"github.com/coroot/coroot-node-agent/ebpftracer"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -13,8 +16,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"inet.af/netaddr"
 	"k8s.io/klog/v2"
-	"os"
-	"time"
 )
 
 var (
@@ -22,6 +23,18 @@ var (
 	space  = []byte{' '}
 	crlf   = []byte{'\r', '\n'}
 )
+
+type Connection struct {
+	Pid        uint32
+	SrcAddr    netaddr.IPPort
+	DstAddr    netaddr.IPPort
+	Fd         uint64
+	Timestamp  uint64
+	Database   string
+	Username   string
+	Password   string
+	PluginName string
+}
 
 func Init(machineId, hostname, version string) {
 	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
@@ -49,7 +62,7 @@ func Init(machineId, hostname, version string) {
 	tracer = tracerProvider.Tracer("coroot-node-agent", trace.WithInstrumentationVersion(version))
 }
 
-func HandleL7Request(containerId string, dest netaddr.IPPort, r *ebpftracer.L7Request, preparedStatements map[string]string) {
+func HandleL7Request(containerId string, src netaddr.IPPort, dest netaddr.IPPort, r *ebpftracer.L7Request, preparedStatements map[string]string, c *Connection) {
 	if tracer == nil {
 		return
 	}
@@ -58,22 +71,14 @@ func HandleL7Request(containerId string, dest netaddr.IPPort, r *ebpftracer.L7Re
 
 	attrs := []attribute.KeyValue{
 		semconv.ContainerID(containerId),
-		semconv.NetPeerName(dest.IP().String()),
-		semconv.NetPeerPort(int(dest.Port())),
+		semconv.NetPeerName(src.IP().String()),
+		semconv.NetPeerPort(int(src.Port())),
+		semconv.NetHostName(dest.IP().String()),
+		semconv.NetHostPort(int(dest.Port())),
 	}
 	switch r.Protocol {
-	case ebpftracer.L7ProtocolHTTP:
-		handleHttpRequest(start, end, r, dest, attrs)
-	case ebpftracer.L7ProtocolMemcached:
-		handleMemcachedQuery(start, end, r, attrs)
-	case ebpftracer.L7ProtocolRedis:
-		handleRedisQuery(start, end, r, attrs)
-	case ebpftracer.L7ProtocolPostgres:
-		handlePostgresQuery(start, end, r, attrs, preparedStatements)
 	case ebpftracer.L7ProtocolMysql:
-		handleMysqlQuery(containerId, start, end, r, attrs, preparedStatements)
-	case ebpftracer.L7ProtocolMongo:
-		handleMongoQuery(start, end, r, attrs)
+		handleMysqlQuery(containerId, start, end, r, attrs, preparedStatements, c)
 	default:
 		return
 	}

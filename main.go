@@ -2,14 +2,12 @@ package main
 
 import (
 	"bytes"
-	"github.com/coroot/coroot-node-agent/common"
 	"github.com/coroot/coroot-node-agent/containers"
 	"github.com/coroot/coroot-node-agent/flags"
-	"github.com/coroot/coroot-node-agent/node"
 	"github.com/coroot/coroot-node-agent/tracing"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"golang.org/x/mod/semver"
+	// "golang.org/x/mod/semver"
 	"golang.org/x/sys/unix"
 	"golang.org/x/time/rate"
 	"k8s.io/klog/v2"
@@ -87,14 +85,6 @@ func main() {
 	klog.Infoln("hostname:", hostname)
 	klog.Infoln("kernel version:", kv)
 
-	ver := common.KernelMajorMinor(kv)
-	if ver == "" {
-		klog.Exitln("invalid kernel version:", kv)
-	}
-	if semver.Compare("v"+ver, "v"+minSupportedKernelVersion) == -1 {
-		klog.Exitf("the minimum Linux kernel version required is %s or later", minSupportedKernelVersion)
-	}
-
 	machineId := machineID()
 	tracing.Init(machineId, hostname, version)
 
@@ -103,9 +93,9 @@ func main() {
 
 	registerer.MustRegister(info("node_agent_info", version))
 
-	if err := registerer.Register(node.NewCollector(hostname, kv)); err != nil {
-		klog.Exitln(err)
-	}
+	// if err := registerer.Register(node.NewCollector(hostname, kv)); err != nil {
+	// 	klog.Exitln(err)
+	// }
 
 	cs, err := containers.NewRegistry(registerer, kv)
 	if err != nil {

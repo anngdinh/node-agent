@@ -9,7 +9,6 @@ import (
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/perf"
 	"github.com/coroot/coroot-node-agent/common"
-	"github.com/coroot/coroot-node-agent/proc"
 	"golang.org/x/mod/semver"
 	"golang.org/x/sys/unix"
 	"inet.af/netaddr"
@@ -164,41 +163,7 @@ func (t *Tracer) Close() {
 }
 
 func (t *Tracer) init(ch chan<- Event) error {
-	pids, err := proc.ListPids()
-	if err != nil {
-		return fmt.Errorf("failed to list pids: %w", err)
-	}
-	for _, pid := range pids {
-		ch <- Event{Type: EventTypeProcessStart, Pid: pid}
-	}
-
-	fds, sockets := readFds(pids)
-	for _, fd := range fds {
-		ch <- Event{Type: EventTypeFileOpen, Pid: fd.pid, Fd: fd.fd}
-	}
-
-	listens := map[uint64]bool{}
-	for _, s := range sockets {
-		if s.Listen {
-			listens[uint64(s.pid)<<32|uint64(s.SAddr.Port())] = true
-		}
-	}
-
-	for _, s := range sockets {
-		typ := EventTypeConnectionOpen
-		if s.Listen {
-			typ = EventTypeListenOpen
-		} else if listens[uint64(s.pid)<<32|uint64(s.SAddr.Port())] || s.DAddr.Port() > s.SAddr.Port() { // inbound
-			continue
-		}
-		ch <- Event{
-			Type:    typ,
-			Pid:     s.pid,
-			Fd:      s.fd,
-			SrcAddr: s.SAddr,
-			DstAddr: s.DAddr,
-		}
-	}
+	
 	return nil
 }
 

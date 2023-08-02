@@ -1,12 +1,16 @@
 package tracing
 
 import (
+	// "encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"strconv"
+
+	// "strings"
 	"time"
 
 	"github.com/coroot/coroot-node-agent/ebpftracer"
+	"github.com/coroot/coroot-node-agent/tracing/mysql/proto"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.18.0"
@@ -22,13 +26,21 @@ const (
 	mysqlMsgHeaderSize  = 4
 )
 
-func handleMysqlQuery(containerId string, start, end time.Time, r *ebpftracer.L7Request, attrs []attribute.KeyValue, preparedStatements map[string]string) {
-	query := parseMysql(r.Payload[:], r.StatementId, preparedStatements)
+func handleMysqlQuery(containerId string, start, end time.Time, r *ebpftracer.L7Request, attrs []attribute.KeyValue, preparedStatements map[string]string, c *Connection) {
+	klog.Info("------------------ handleMysqlQuery")
+	query := parseMysql(r.Payload[:], r.StatementId, preparedStatements, c)
 	if query == "" {
+		klog.Infof("---------- Can't: %s", query)
 		return
 	}
 
 	klog.Infof("---------- query: %s", query)
+	if c.Database != "" {
+		attrs = append(attrs, attribute.KeyValue{Key: attribute.Key("db.name"), Value: attribute.StringValue(c.Database)})
+	}
+	if c.Username != "" {
+		attrs = append(attrs, attribute.KeyValue{Key: attribute.Key("db.user"), Value: attribute.StringValue(c.Username)})
+	}
 
 	_, span := tracer.Start(nil, containerId+" | "+query, trace.WithTimestamp(start), trace.WithSpanKind(trace.SpanKindClient))
 	span.SetAttributes(append(attrs, semconv.DBSystemMySQL, semconv.DBStatement(query))...)
@@ -38,8 +50,18 @@ func handleMysqlQuery(containerId string, start, end time.Time, r *ebpftracer.L7
 	span.End(trace.WithTimestamp(end))
 }
 
-func parseMysql(payload []byte, statementId uint32, preparedStatements map[string]string) string {
+func parseMysql(payload []byte, statementId uint32, preparedStatements map[string]string, c *Connection) string {
+	klog.Info("------------------ parseMysql")
 	payloadSize := len(payload)
+	// klog.Info("---------- payloadSize:", payloadSize)
+
+	// sEnc := base64.StdEncoding.EncodeToString(payload)
+	// // klog.Info("---------- encode:", sEnc)
+
+	// myString := string(payload[:])
+	// klog.Info("---------- myString:", payload)
+	// klog.Info("---------- myString:", myString)
+
 	if payloadSize < mysqlMsgHeaderSize+5 {
 		return ""
 	}
@@ -80,6 +102,19 @@ func parseMysql(payload []byte, statementId uint32, preparedStatements map[strin
 	case MysqlComStmtClose:
 		statementIdStr := readStatementId()
 		delete(preparedStatements, statementIdStr)
+	default:
+		sum := 0
+		for i := 13; i < 36; i++ {
+			sum += int(payload[i])
+		}
+		if sum == 0 {
+			a := proto.NewAuth()
+			err := a.UnPack(payload[4:])
+			klog.Info("---------- a:", a, err)
+
+			c.Database = a.Database()
+			c.Username = a.User()
+		}
 	}
 	return ""
 }
