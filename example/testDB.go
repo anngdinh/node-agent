@@ -4,9 +4,13 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"time"
+
 	// "time"
 
 	_ "github.com/coroot/coroot-node-agent/example/mysql"
+	sqlcommentercore "github.com/google/sqlcommenter/go/core"
+	gosql "github.com/google/sqlcommenter/go/database/sql"
 )
 
 func main() {
@@ -17,18 +21,39 @@ func main() {
 	// 	switch j {
 	// 	case 0:
 	// 		testDB()
-	// 	// case 1:
-	// 	// 	testDB2()
+	// 		// case 1:
+	// 		// 	testDB2()
 	// 	}
-	// fmt.Println("Test DB oke !")
-	// 	time.Sleep(10 * time.Second)
+	// 	fmt.Println("Test DB oke !")
+	// 	time.Sleep(5 * time.Second)
 	// }
+	time.Sleep(1 * time.Second)
 	testDB()
 	fmt.Println("Test DB oke !")
 }
 
+var (
+	db  *sql.DB
+	err error
+)
+
 func testDB() {
-	db, err := sql.Open("mysql", "annd2:password@tcp(116.118.89.22:3306)/mysql")
+	// db, err := sql.Open("mysql", "annd2:password@tcp(116.118.89.22:3306)/mysql")
+	db, err = gosql.Open("mysql", "annd2:password@tcp(localhost:3306)/mysql", sqlcommentercore.CommenterOptions{
+		// Config: sqlcommentercore.CommenterConfig{
+		// 	EnableController:  true,
+		// 	EnableDBDriver:    true,
+		// 	EnableRoute:       true,
+		// 	EnableFramework:   true,
+		// 	EnableAction:      true,
+		// 	EnableTraceparent: true,
+		// 	EnableApplication: true,
+		// },
+		Tags: sqlcommentercore.StaticTags{
+			Application: "coroot",
+			DriverName:  "go-sql-driver/mysql",
+		},
+	})
 	if err != nil {
 		panic(err.Error())
 	}

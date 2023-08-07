@@ -6,6 +6,8 @@ require (
 	github.com/biter777/processex v0.0.0-20210102170504-01bb369eda71
 	github.com/cilium/ebpf v0.9.4-0.20221102092914-a9cf21df64c2
 	github.com/containerd/cgroups v1.0.1
+	github.com/google/sqlcommenter/go/core v0.1.2
+	github.com/google/sqlcommenter/go/database/sql v0.1.1
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 	github.com/prometheus/client_golang v1.14.0
 	github.com/shopspring/decimal v1.3.1
