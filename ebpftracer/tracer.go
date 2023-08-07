@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-const PayloadSize = 512
+const PayloadSize = 1024
 
 type EventType uint32
 type EventReason uint32

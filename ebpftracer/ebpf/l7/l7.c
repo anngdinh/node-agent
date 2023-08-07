@@ -25,7 +25,7 @@
 #define METHOD_STATEMENT_PREPARE 3
 #define METHOD_STATEMENT_CLOSE   4
 
-#define MAX_PAYLOAD_SIZE 512
+#define MAX_PAYLOAD_SIZE 1024
 
 struct l7_event {
     __u64 fd;
