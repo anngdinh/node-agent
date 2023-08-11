@@ -129,7 +129,18 @@ int inet_sock_set_state(void *ctx)
         type = EVENT_TYPE_LISTEN_CLOSE;
         map = &tcp_listen_events;
     }
-
+    if (args.oldstate == BPF_TCP_SYN_RECV && args.newstate == BPF_TCP_ESTABLISHED) {
+        // struct sk_info *i = bpf_map_lookup_elem(&sk_info, &args.skaddr);
+        // // if (!i) {
+        // //     return 0;
+        // // }
+        // timestamp = bpf_ktime_get_ns();
+        // struct sk_info k = {};
+        // k.pid = i->pid;
+        // k.fd = i->fd;
+        // bpf_map_update_elem(&connection_timestamps, &k, &timestamp, BPF_ANY);
+        type = EVENT_TYPE_CONNECTION_ACCEPT;
+    }
     if (type == 0) {
         return 0;
     }

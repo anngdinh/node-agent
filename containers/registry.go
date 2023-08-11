@@ -2,6 +2,7 @@ package containers
 
 import (
 	"time"
+	"fmt"
 
 	"github.com/coroot/coroot-node-agent/ebpftracer"
 	"github.com/coroot/coroot-node-agent/flags"
@@ -65,8 +66,8 @@ func (r *Registry) handleEvents(ch <-chan ebpftracer.Event) {
 			// if e.Type == ebpftracer.EventTypeL7Request {
 				// 	// // if e.Pid == 145575 || e.DstAddr.String() == "172.24.0.2:3306" {
 
-				klog.Info("---- type:", e.Type, "reason:", e.Reason, "pid:", e.Pid, "src:", e.SrcAddr, "dst:", e.DstAddr, "fd:", e.Fd, "ts:", e.Timestamp)
-				// fmt.Println("---- type:", e.Type, "reason:", e.Reason, "pid:", e.Pid, "src:", e.SrcAddr, "dst:", e.DstAddr, "fd:", e.Fd, "ts:", e.Timestamp, "l7:")
+				// klog.Info("---- type:", e.Type, "reason:", e.Reason, "pid:", e.Pid, "src:", e.SrcAddr, "dst:", e.DstAddr, "fd:", e.Fd, "ts:", e.Timestamp)
+				fmt.Println("---- type:", e.Type, "reason:", e.Reason, "pid:", e.Pid, "src:", e.SrcAddr, "dst:", e.DstAddr, "fd:", e.Fd, "ts:", e.Timestamp, "l7:")
 			// }
 
 			if !more {
@@ -129,6 +130,7 @@ func (r *Registry) handleEvents(ch <-chan ebpftracer.Event) {
 			// 		}
 			// 	}
 			case ebpftracer.EventTypeL7Request:
+				klog.Info("--------- EventTypeL7Request: ", e.Pid, " ", e.Fd, " ", e.Timestamp, " ", e.Reason, " ", e.Type, " ", e.SrcAddr, " ", e.DstAddr, " ", e.L7Request.Protocol)
 				if e.L7Request == nil {
 					continue
 				}

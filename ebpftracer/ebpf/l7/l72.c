@@ -53,6 +53,17 @@ struct {
     __uint(value_size, sizeof(int));
 } l7_events SEC(".maps");
 
+struct event {
+	__u8 pid;
+	__u8 uid;
+};
+
+struct {
+    __uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
+    __uint(key_size, sizeof(int));
+    __uint(value_size, sizeof(int));
+} l7_events_inbound SEC(".maps");
+
 struct rw_args_t {
     __u64 fd;
     char* buf;
@@ -128,6 +139,9 @@ __u64 get_connection_timestamp(__u32 pid, __u64 fd) {
 
 static inline __attribute__((__always_inline__))
 int trace_enter_write(struct trace_event_raw_sys_enter_rw__stub* ctx, __u64 fd, char *buf, __u64 size) {
+    // struct event event = {};
+    // bpf_perf_event_output(ctx, &l7_events_inbound, BPF_F_CURRENT_CPU, &event, sizeof(event));
+
     __u64 id = bpf_get_current_pid_tgid();
     int zero = 0;
     struct l7_request *req = bpf_map_lookup_elem(&l7_request_heap, &zero);
@@ -174,6 +188,10 @@ int trace_enter_write(struct trace_event_raw_sys_enter_rw__stub* ctx, __u64 fd, 
 
 static inline __attribute__((__always_inline__))
 int trace_enter_read(struct trace_event_raw_sys_enter_rw__stub* ctx) {
+    // struct event event = {};
+    // event.pid = 0;
+    // bpf_perf_event_output(ctx, &l7_events_inbound, BPF_F_CURRENT_CPU, &event, sizeof(event));
+
     __u64 id = bpf_get_current_pid_tgid();
     struct rw_args_t args = {};
     args.fd = ctx->fd;
@@ -214,6 +232,11 @@ int trace_exit_read(struct trace_event_raw_sys_exit_rw__stub* ctx) {
     e->status = 0;
     e->method = METHOD_UNKNOWN;
     e->statement_id = 0;
+
+    bpf_perf_event_output(ctx, &l7_events_inbound, BPF_F_CURRENT_CPU, e, sizeof(*e));
+    // struct event event = {};
+    // event.pid = 0;
+    // bpf_perf_event_output(ctx, &l7_events_inbound, BPF_F_CURRENT_CPU, &event, sizeof(event));
 
 
     struct cassandra_header cassandra_response = {};
@@ -260,16 +283,22 @@ int sys_enter_writev(struct trace_event_raw_sys_enter_rw__stub* ctx) {
     if (bpf_probe_read(&iov0, sizeof(struct iov), (void *)ctx->buf) < 0) {
         return 0;
     }
+    // struct event event = {};
+    // bpf_perf_event_output(ctx, &l7_events_inbound, BPF_F_CURRENT_CPU, &event, sizeof(event));
     return trace_enter_write(ctx, ctx->fd, iov0.buf, iov0.size);
 }
 
 SEC("tracepoint/syscalls/sys_enter_write")
 int sys_enter_write(struct trace_event_raw_sys_enter_rw__stub* ctx) {
+    // struct event event = {};
+    // bpf_perf_event_output(ctx, &l7_events_inbound, BPF_F_CURRENT_CPU, &event, sizeof(event));
     return trace_enter_write(ctx, ctx->fd, ctx->buf, ctx->size);
 }
 
 SEC("tracepoint/syscalls/sys_enter_sendto")
 int sys_enter_sendto(struct trace_event_raw_sys_enter_rw__stub* ctx) {
+    // struct event event = {};
+    // bpf_perf_event_output(ctx, &l7_events_inbound, BPF_F_CURRENT_CPU, &event, sizeof(event));
     return trace_enter_write(ctx, ctx->fd, ctx->buf, ctx->size);
 }
 

@@ -31,6 +31,8 @@ const (
 	EventTypeConnectionOpen  EventType = 3
 	EventTypeConnectionClose EventType = 4
 	EventTypeConnectionError EventType = 5
+	EventTypeConnectionAccept EventType = 50
+	EventTypeL7RequestInbound EventType = 500
 	EventTypeListenOpen      EventType = 6
 	EventTypeListenClose     EventType = 7
 	EventTypeFileOpen        EventType = 8
@@ -202,15 +204,16 @@ func (t *Tracer) ebpf(ch chan<- Event, kernelVersion string, disableL7Tracing bo
 	t.collection = c
 
 	perfMaps := []perfMap{
-		{name: "proc_events", event: &procEvent{}, perCPUBufferSizePages: 4},
+		// {name: "proc_events", event: &procEvent{}, perCPUBufferSizePages: 4},
 		{name: "tcp_listen_events", event: &tcpEvent{}, perCPUBufferSizePages: 4},
 		{name: "tcp_connect_events", event: &tcpEvent{}, perCPUBufferSizePages: 8},
 		{name: "tcp_retransmit_events", event: &tcpEvent{}, perCPUBufferSizePages: 4},
-		{name: "file_events", event: &fileEvent{}, perCPUBufferSizePages: 4},
+		// {name: "file_events", event: &fileEvent{}, perCPUBufferSizePages: 4},
 	}
 
 	if !disableL7Tracing {
 		perfMaps = append(perfMaps, perfMap{name: "l7_events", event: &l7Event{}, perCPUBufferSizePages: 16})
+		// perfMaps = append(perfMaps, perfMap{name: "l7_events_inbound", event: &l7EventInbound{}, perCPUBufferSizePages: 16})
 	}
 
 	for _, pm := range perfMaps {
@@ -269,6 +272,10 @@ func (t EventType) String() string {
 		return "connection-close"
 	case EventTypeConnectionError:
 		return "connection-error"
+	case EventTypeConnectionAccept:
+		return "connection-accept"
+	case EventTypeL7RequestInbound:
+		return "l7-request-INBOUND"
 	case EventTypeListenOpen:
 		return "listen-open"
 	case EventTypeListenClose:
@@ -363,6 +370,23 @@ func (e l7Event) Event() Event {
 	}}
 }
 
+type l7EventInbound struct {
+	Fd                  uint64
+	ConnectionTimestamp uint64
+	Pid                 uint32
+	Status              uint32
+	Duration            uint64
+	Protocol            uint8
+	Method              uint8
+	Padding             uint16
+	StatementId         uint32
+	Payload             [PayloadSize]byte
+}
+
+func (e l7EventInbound) Event() Event {
+	return Event{Type: EventTypeL7RequestInbound}
+}
+
 func runEventsReader(name string, r *perf.Reader, ch chan<- Event, e rawEvent) {
 	for {
 		rec, err := r.Read()
@@ -373,11 +397,11 @@ func runEventsReader(name string, r *perf.Reader, ch chan<- Event, e rawEvent) {
 			continue
 		}
 		if rec.LostSamples > 0 {
-			klog.Errorln(name, "lost samples:", rec.LostSamples)
+			// klog.Errorln(name, "lost samples:", rec.LostSamples)
 			continue
 		}
 		if err := binary.Read(bytes.NewBuffer(rec.RawSample), binary.LittleEndian, e); err != nil {
-			klog.Warningln("failed to read msg:", err)
+			// klog.Warningln("failed to read msg:", err)
 			continue
 		}
 		ch <- e.Event()
