@@ -130,15 +130,15 @@ func (r *Registry) handleEvents(ch <-chan ebpftracer.Event) {
 			// 		}
 			// 	}
 			case ebpftracer.EventTypeL7Request:
-				klog.Info("--------- EventTypeL7Request: ", e.Pid, " ", e.Fd, " ", e.Timestamp, " ", e.Reason, " ", e.Type, " ", e.SrcAddr, " ", e.DstAddr, " ", e.L7Request.Protocol)
+				// klog.Info("--------- EventTypeL7Request: ", e.Pid, " ", e.Fd, " ", e.Timestamp, " ", e.Reason, " ", e.Type, " ", e.SrcAddr, " ", e.DstAddr, " ", e.L7Request.Protocol)
 				if e.L7Request == nil {
 					continue
 				}
-				if c := r.ConnectionByPid[e.Pid]; c != nil {
+				// if c := r.ConnectionByPid[e.Pid]; c != nil {
 					r.onL7Request(e.Pid, e.Fd, e.Timestamp, e.L7Request)
-				} else {
-					klog.Infof("--------- no container found for pid:", e.Pid)
-				}
+				// } else {
+				// 	klog.Infof("--------- no container found for pid:", e.Pid)
+				// }
 			}
 		}
 	}

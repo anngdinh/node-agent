@@ -26,18 +26,18 @@ type EventType uint32
 type EventReason uint32
 
 const (
-	EventTypeProcessStart    EventType = 1
-	EventTypeProcessExit     EventType = 2
-	EventTypeConnectionOpen  EventType = 3
-	EventTypeConnectionClose EventType = 4
-	EventTypeConnectionError EventType = 5
+	EventTypeProcessStart     EventType = 1
+	EventTypeProcessExit      EventType = 2
+	EventTypeConnectionOpen   EventType = 3
+	EventTypeConnectionClose  EventType = 4
+	EventTypeConnectionError  EventType = 5
 	EventTypeConnectionAccept EventType = 50
 	EventTypeL7RequestInbound EventType = 500
-	EventTypeListenOpen      EventType = 6
-	EventTypeListenClose     EventType = 7
-	EventTypeFileOpen        EventType = 8
-	EventTypeTCPRetransmit   EventType = 9
-	EventTypeL7Request       EventType = 10
+	EventTypeListenOpen       EventType = 6
+	EventTypeListenClose      EventType = 7
+	EventTypeFileOpen         EventType = 8
+	EventTypeTCPRetransmit    EventType = 9
+	EventTypeL7Request        EventType = 10
 
 	EventReasonNone    EventReason = 0
 	EventReasonOOMKill EventReason = 1
@@ -165,7 +165,7 @@ func (t *Tracer) Close() {
 }
 
 func (t *Tracer) init(ch chan<- Event) error {
-	
+
 	return nil
 }
 
@@ -209,10 +209,12 @@ func (t *Tracer) ebpf(ch chan<- Event, kernelVersion string, disableL7Tracing bo
 		{name: "tcp_connect_events", event: &tcpEvent{}, perCPUBufferSizePages: 8},
 		{name: "tcp_retransmit_events", event: &tcpEvent{}, perCPUBufferSizePages: 4},
 		// {name: "file_events", event: &fileEvent{}, perCPUBufferSizePages: 4},
+		// {name: "message_events", event: &messageEvents{}, perCPUBufferSizePages: 4},
+		{name: "l7_events", event: &l7Event{}, perCPUBufferSizePages: 16},
 	}
 
 	if !disableL7Tracing {
-		perfMaps = append(perfMaps, perfMap{name: "l7_events", event: &l7Event{}, perCPUBufferSizePages: 16})
+		// perfMaps = append(perfMaps, perfMap{name: "l7_events", event: &l7Event{}, perCPUBufferSizePages: 16})
 		// perfMaps = append(perfMaps, perfMap{name: "l7_events_inbound", event: &l7EventInbound{}, perCPUBufferSizePages: 16})
 	}
 
@@ -347,27 +349,36 @@ func (e fileEvent) Event() Event {
 }
 
 type l7Event struct {
-	Fd                  uint64
-	ConnectionTimestamp uint64
-	Pid                 uint32
-	Status              uint32
-	Duration            uint64
-	Protocol            uint8
-	Method              uint8
-	Padding             uint16
-	StatementId         uint32
+	// Fd                  uint64
+	// ConnectionTimestamp uint64
+	// Pid                 uint32
+	// Status              uint32
+	// Duration            uint64
+	Size            uint64
+	// Protocol            uint64
+	// Method              uint8
+	// Padding             uint16
+	// StatementId         uint32
+
 	Payload             [PayloadSize]byte
+
+	// Message uint32
 }
 
 func (e l7Event) Event() Event {
-	return Event{Type: EventTypeL7Request, Pid: e.Pid, Fd: e.Fd, Timestamp: e.ConnectionTimestamp, L7Request: &L7Request{
-		Protocol:    L7Protocol(e.Protocol),
-		Status:      int(e.Status),
-		Duration:    time.Duration(e.Duration),
-		Method:      L7Method(e.Method),
-		StatementId: e.StatementId,
-		Payload:     e.Payload,
-	}}
+	// fmt.Print("haha ")
+	// fmt.Println(e.Size, e.Payload)
+	// return Event{Type: EventTypeL7Request}
+	return Event{Type: EventTypeL7Request, Fd:e.Size}
+	// return Event{Type: EventTypeL7Request, Pid: e.Pid, Fd: e.Fd, Timestamp: e.ConnectionTimestamp, L7Request: &L7Request{
+	// 	Protocol:    L7Protocol(e.Protocol),
+	// 	Status:      int(e.Status),
+	// 	Duration:    time.Duration(e.Duration),
+	// 	Method:      L7Method(e.Method),
+	// 	StatementId: e.StatementId,
+	// 	Payload:     e.Payload,
+	// }}
+
 }
 
 type l7EventInbound struct {
@@ -387,6 +398,14 @@ func (e l7EventInbound) Event() Event {
 	return Event{Type: EventTypeL7RequestInbound}
 }
 
+type messageEvents struct {
+	Message uint32
+}
+
+func (e messageEvents) Event() Event {
+	return Event{Type: EventType(e.Message)}
+}
+
 func runEventsReader(name string, r *perf.Reader, ch chan<- Event, e rawEvent) {
 	for {
 		rec, err := r.Read()
@@ -404,6 +423,7 @@ func runEventsReader(name string, r *perf.Reader, ch chan<- Event, e rawEvent) {
 			// klog.Warningln("failed to read msg:", err)
 			continue
 		}
+		// fmt.Println(e.Event)
 		ch <- e.Event()
 	}
 }

@@ -1,0 +1,174 @@
+
+
+tracepoint:syscalls:sys_enter_recvfrom 
+{ 
+    if (pid != 698) {
+        return;
+    }
+    printf("%d - %s - ", pid, comm);
+    printf("fd: %d, ubuf: 0x%08lx, size: %d, flags: %d, addr: 0x%08lx, addr_len: %d\n", ((args->fd)), ((args->ubuf)), ((args->size)), ((args->flags)), ((args->addr)), (*(args->addr_len))); 
+}
+/*
+*/
+// BEGIN { @start = nsecs; }
+
+/*
+kprobe:tcp_recvmsg
+{
+ // @[comm] = count();
+
+    if (pid == 698) {printf("hhhhhhhhhhhhhhhhhhhh\n");}
+     if (comm == "bpftrace" || comm == "which" || comm == "sleep") {return;}
+     if (comm == "sshd") {return;}
+     if (comm == "node") {return;}
+
+      if (comm == "sudo" || comm == "ps" || comm == "git") {return;}
+     if (comm == "otelcol-contrib" || comm == "cat" || comm == "containerd" || comm == "all-in-one-linu" || comm == "cpuUsage.sh" || comm == "multipathd" || comm == "sed" || comm == "dockerd") {return;}
+    
+    //printf("pid=%d: size=%d\n", pid, arg2);
+    //printf("%d\n", (((struct msghdr *)arg1)->msg_namelen) );
+    //printf("%d\n", (((struct msghdr *)arg1)->msg_control_is_user));
+    //printf("%d\n", (((struct msghdr *)arg1)->msg_controllen));
+    //printf("%d\n", (((struct msghdr *)arg1)->msg_flags) );
+    //printf("%d\n", ((((struct msghdr *)arg1)->msg_iter)).iov[0].iov_len );
+    printf("%d\n", ((((((struct msghdr *)arg1)->msg_iter)).iov)->iov_len) );
+    printf("%d\n", ((struct msghdr *)arg1)->msg_iter.iov->iov_len );
+    printf("%d\n", ((struct msghdr *)arg1)->msg_iter.iov->iov_base );
+    //buf(args.buff, args.len)
+    printf("%r\n", buf(           ((struct msghdr *)arg1)->msg_iter.iov->iov_base, 4              ));
+    printf("%s\n", str(           ((struct msghdr *)arg1)->msg_iter.iov->iov_base              ));
+    //printf("%d\n", ((((((struct msghdr *)arg1)->msg_iter)).iov[0].iov_base)) );
+    //printf("%p\n", ((((((struct msghdr *)arg1)->msg_iter)).iov[0].iov_base)) );
+    //printf("%s\n", str((((((struct msghdr *)arg1)->msg_iter)).iov[0].iov_base)) );
+
+
+    
+    // printf("%d\n", ((retval)));
+    // printf("%s\n", str(((struct iovec *)(((struct msghdr *)arg1)->msg_iov[0]))->iov_base));
+    printf("kprobe:tcp_recvmsg: %d - %s - \n", pid, comm);
+    // printf("fd: %d, buf: %s, count: %d\n", ((args->fd)), (str(args->buf)), ((args->count)));
+}
+*/
+
+/*
+tracepoint:syscalls:sys_enter_sendto
+{
+    if (comm == "bpftrace" || comm == "which" || comm == "sleep" || comm == "sshd" || comm == "node") {return;}
+    if (comm == "sudo" || comm == "ps" || comm == "git") {return;}
+    if (comm == "otelcol-contrib" || comm == "cat" || comm == "containerd" || comm == "all-in-one-linu" || comm == "cpuUsage.sh") {return;}
+    if (comm == "multipathd" || comm == "sed" || comm == "dockerd") {return;}
+
+    printf("tracepoint:syscalls:sys_enter_sendto: %d - %s - \n", pid, comm);
+}
+*/
+
+/*
+
+struct msghdr {
+        void *msg_name;
+        int msg_namelen;
+        struct iov_iter msg_iter;
+        union {
+                void *msg_control;
+                void *msg_control_user;
+        };
+        bool msg_control_is_user: 1;
+        __kernel_size_t msg_controllen;
+        unsigned int msg_flags;
+        struct kiocb *msg_iocb;
+};
+struct iov_iter {
+        u8 iter_type;
+        bool nofault;
+        bool data_source;
+        size_t iov_offset;
+        size_t count;
+        union {
+                const struct iovec *iov;
+                const struct kvec *kvec;
+                const struct bio_vec *bvec;
+                struct xarray *xarray;
+                struct pipe_inode_info *pipe;
+        };
+        union {
+                long unsigned int nr_segs;
+                struct {
+                        unsigned int head;
+                        unsigned int start_head;
+                };
+                loff_t xarray_start;
+        };
+};
+((struct iovec *)(((struct msghdr *)arg1)->msg_iov[0]))->iov_base
+
+
+tracepoint:syscalls:sys_exit_write 
+{ 
+    if (pid == 698) {printf("hhhhhhhhhhhhhhhhhhhh\n");}
+     if (comm == "bpftrace" || comm == "which" || comm == "sh" || comm == "sleep") {return;}
+     if (comm == "sshd") {return;}
+     if (comm == "node") {return;}
+     if (comm == "sudo" || comm == "ps" || comm == "git") {return;}
+          if (comm == "otelcol-contrib") {return;}if (comm == "cat" || comm == "containerd" || comm == "all-in-one-linu" || comm == "cpuUsage.sh" || comm == "multipathd" || comm == "sed" || comm == "dockerd") {return;}
+    printf("sys_exit_write: %d - %s - \n", pid, comm);
+}
+
+
+tracepoint:syscalls:sys_enter_read 
+{ 
+    if (pid == 698) {printf("hhhhhhhhhhhhhhhhhhhh\n");}
+     if (comm == "bpftrace" || comm == "which" || comm == "sh" || comm == "sleep") {return;}
+     if (comm == "sshd") {return;}
+     if (comm == "node") {return;}
+     if (comm == "sudo" || comm == "ps" || comm == "git") {return;}
+          if (comm == "otelcol-contrib") {return;}if (comm == "cat" || comm == "containerd" || comm == "all-in-one-linu" || comm == "cpuUsage.sh" || comm == "multipathd" || comm == "sed" || comm == "dockerd") {return;}
+    printf("sys_enter_read: %d - %s - \n", pid, comm);
+    // printf("fd: %d, buf: %s, count: %d\n", ((args->fd)), (str(args->buf)), ((args->count)));
+}
+tracepoint:syscalls:sys_exit_read 
+{ 
+    if (pid == 698) {printf("hhhhhhhhhhhhhhhhhhhh\n");}
+     if (comm == "bpftrace" || comm == "which" || comm == "sh" || comm == "sleep") {return;}
+     if (comm == "sshd") {return;}
+     if (comm == "node") {return;}
+     if (comm == "sudo" || comm == "ps" || comm == "git") {return;}
+          if (comm == "otelcol-contrib") {return;}if (comm == "cat" || comm == "containerd" || comm == "all-in-one-linu" || comm == "cpuUsage.sh" || comm == "multipathd" || comm == "sed" || comm == "dockerd") {return;}
+    printf("sys_exit_read: %d - %s - \n", pid, comm);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// printf("fd: %d, buf: %s, count: %d\n", ((args->fd)), (str(args->buf)), ((args->count)));
+
+tracepoint:syscalls:sys_enter_sendto 
+{ 
+    if (pid != 698) {return;}
+    printf("%d - %s - ", pid, comm);
+    printf("fd: %d, buff: 0x%08lx, len: %d, flags: %d, addr: 0x%08lx, addr_len: %d, addr.sa_data: %s\n", ((args->fd)), ((args->buff)), ((args->len)), ((args->flags)), ((args->addr)), (*(args->addr_len)), ((args->addr->sa_data))); 
+}
+
+#include <linux/path.h>
+#include <linux/dcache.h>
+
+kprobe:vfs_open
+{
+	printf("open path: %s\n", str(((struct path *)arg0)->dentry->d_name.name));
+}
+
+
+*/
