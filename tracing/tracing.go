@@ -39,6 +39,10 @@ type Connection struct {
 func Init(machineId, hostname, version string) {
 	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
 	if endpoint == "" {
+		endpoint := "http://localhost:4318/v1/traces"
+	}
+	
+	if endpoint == "" {
 		klog.Infoln("no OpenTelemetry collector endpoint configured")
 		return
 	}

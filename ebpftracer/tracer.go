@@ -3,8 +3,15 @@ package ebpftracer
 import (
 	"bytes"
 	"encoding/binary"
+	// "encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"runtime"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/perf"
@@ -13,11 +20,6 @@ import (
 	"golang.org/x/sys/unix"
 	"inet.af/netaddr"
 	"k8s.io/klog/v2"
-	"os"
-	"runtime"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const PayloadSize = 1024
@@ -205,9 +207,9 @@ func (t *Tracer) ebpf(ch chan<- Event, kernelVersion string, disableL7Tracing bo
 
 	perfMaps := []perfMap{
 		// {name: "proc_events", event: &procEvent{}, perCPUBufferSizePages: 4},
-		{name: "tcp_listen_events", event: &tcpEvent{}, perCPUBufferSizePages: 4},
-		{name: "tcp_connect_events", event: &tcpEvent{}, perCPUBufferSizePages: 8},
-		{name: "tcp_retransmit_events", event: &tcpEvent{}, perCPUBufferSizePages: 4},
+		// {name: "tcp_listen_events", event: &tcpEvent{}, perCPUBufferSizePages: 4},
+		// {name: "tcp_connect_events", event: &tcpEvent{}, perCPUBufferSizePages: 8},
+		// {name: "tcp_retransmit_events", event: &tcpEvent{}, perCPUBufferSizePages: 4},
 		// {name: "file_events", event: &fileEvent{}, perCPUBufferSizePages: 4},
 		// {name: "message_events", event: &messageEvents{}, perCPUBufferSizePages: 4},
 		{name: "l7_events", event: &l7Event{}, perCPUBufferSizePages: 16},
@@ -349,35 +351,53 @@ func (e fileEvent) Event() Event {
 }
 
 type l7Event struct {
-	// Fd                  uint64
-	// ConnectionTimestamp uint64
-	// Pid                 uint32
-	// Status              uint32
-	// Duration            uint64
+	// // Fd                  uint64
+	// // ConnectionTimestamp uint64
+	// // Protocol            uint8
+	// // RequestType            uint8
+	// Pid                 uint64
+	// // Status              uint32
+	// // Duration            uint64
 	Size            uint64
-	// Protocol            uint64
 	// Method              uint8
 	// Padding             uint16
 	// StatementId         uint32
 
 	Payload             [PayloadSize]byte
+	// Comm             [16]byte
 
 	// Message uint32
 }
 
 func (e l7Event) Event() Event {
 	// fmt.Print("haha ")
-	// fmt.Println(e.Size, e.Payload)
+	// fmt.Print(" Pid:", e.Pid >> 32)
+	// fmt.Print(" Protocol:", e.Protocol)
+	// fmt.Print(" RequestType:", e.RequestType)
+	len := e.Size + 4
+	if len > 1024 {
+		len = 10
+	}
+	fmt.Print(" size:", e.Size)
+	fmt.Print(" payload:", e.Payload[:10])
+	fmt.Print(" payload:", string(e.Payload[:len]))
+	// data,_:=json.Marshal(e)
+	// fmt.Print(" data:", string(data))
+	// fmt.Print(" Comm:", string(e.Comm[:16]))
+	fmt.Println("")
 	// return Event{Type: EventTypeL7Request}
-	return Event{Type: EventTypeL7Request, Fd:e.Size}
-	// return Event{Type: EventTypeL7Request, Pid: e.Pid, Fd: e.Fd, Timestamp: e.ConnectionTimestamp, L7Request: &L7Request{
-	// 	Protocol:    L7Protocol(e.Protocol),
-	// 	Status:      int(e.Status),
-	// 	Duration:    time.Duration(e.Duration),
-	// 	Method:      L7Method(e.Method),
-	// 	StatementId: e.StatementId,
-	// 	Payload:     e.Payload,
-	// }}
+	// return Event{Type: EventTypeL7Request}
+	return Event{Type: EventTypeL7Request, 
+		// Pid: e.Pid, Fd: e.Fd, Timestamp: e.ConnectionTimestamp, 
+		L7Request: &L7Request{
+		// Protocol:    L7Protocol(e.Protocol),
+		Protocol:    L7Protocol(L7ProtocolMysql),
+		// Status:      int(e.Status),
+		// Duration:    time.Duration(e.Duration),
+		// Method:      L7Method(e.Method),
+		// StatementId: e.StatementId,
+		Payload:     e.Payload,
+	}}
 
 }
 
@@ -423,7 +443,7 @@ func runEventsReader(name string, r *perf.Reader, ch chan<- Event, e rawEvent) {
 			// klog.Warningln("failed to read msg:", err)
 			continue
 		}
-		// fmt.Println(e.Event)
+		// fmt.Println("------", e.Event)
 		ch <- e.Event()
 	}
 }

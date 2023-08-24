@@ -39,14 +39,15 @@ recvfrom:
 arg:
 	# /home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_openat
 	# /home/stackops/bpftrace -lv kprobe:tcp_sendmsg
-	/home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_recvfrom
-	# /home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_sendto
+	# /home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_recvfrom
+	/home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_close
+	/home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_connect
 	# /home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_read
 	# /home/stackops/bpftrace -lv "struct path"
 	# /home/stackops/bpftrace -lv "struct sockaddr"
 	# /home/stackops/bpftrace -lv "struct msghdr"
 	# /home/stackops/bpftrace -lv "struct iov_iter"
-	# /home/stackops/bpftrace -lv "struct kiocb"
+	# /home/stackops/bpftrace -lv "struct page"
 	# /home/stackops/bpftrace -lv "struct iovec"
 	# /home/stackops/bpftrace -lv "struct size_t"
 
@@ -56,3 +57,12 @@ arg:
 	# /home/stackops/bpftrace -e 'BEGIN { printf("hello\n"); }'
 	# /home/stackops/bpftrace -e 'tracepoint:syscalls:sys_enter_sendto { printf("Datagram bytes: %r\n", buf(args.buff, args.len)); }'
 	# /home/stackops/bpftrace -e 'tracepoint:syscalls:sys_enter_recvfrom { printf("Datagram bytes: %r, %d\n", buf(args.ubuf, args.size), args.size); }'
+	
+	# bpftrace -l tracepoint:syscalls:sys_enter_*
+
+bpftrace:
+	# ./bpftrace ./ebpftracer/ebpf/l7/sys_enter_recvfrom.bt
+	# ./bpftrace ./ebpftracer/ebpf/l7/tcp_recvmsg.bt
+	./bpftrace test.bt
+
+.PHONY: bpftrace

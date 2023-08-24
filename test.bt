@@ -1,15 +1,71 @@
+tracepoint:syscalls:sys_enter_connect
+{
+    if (comm != "connection") {return;}
+    printf("tracepoint:syscalls:sys_enter_connect: %d - %d - %s - \n", pid, tid, comm);
+    // printf("fd: %d, buf: %s, count: %d\n", ((args->fd)), (str(args->buf)), ((args->count)));
+}
+
+tracepoint:syscalls:sys_enter_close
+{
+    if (comm != "connection") {return;}
+    printf("tracepoint:syscalls:sys_enter_close: %d - %d - %s - \n", pid, tid, comm);
+    // printf("fd: %d, buf: %s, count: %d\n", ((args->fd)), (str(args->buf)), ((args->count)));
+}
+
+tracepoint:sock:inet_sock_set_state
+{
+    printf("tracepoint:sock:inet_sock_set_state: %d - %d - %s - \n", pid, tid, comm);
+    // printf("fd: %d, buf: %s, count: %d\n", ((args->fd)), (str(args->buf)), ((args->count)));
+}
+
+/*
+
+
+tracepoint:syscalls:sys_enter_read
+{ 
+    // if (pid == 698) {printf("hhhhhhhhhhhhhhhhhhhh\n");}
+    if (pid != 698) {return;}
+    // if (comm == "bpftrace" || comm == "which" || comm == "sh" || comm == "sleep") {return;}
+    // if (comm == "sshd") {return;}
+    if (comm == "node") {return;}
+    // if (comm == "sudo" || comm == "ps" || comm == "git") {return;}
+    // if (comm == "otelcol-contrib") {return;}
+    // if (comm == "cat" || comm == "containerd" || comm == "all-in-one-linu" || comm == "cpuUsage.sh" || comm == "multipathd" || comm == "sed" || comm == "dockerd") {return;}
+    printf("sys_enter_read: %d - %s - ", pid, comm);
+    printf("%s\n\n", str(args->buf));
+}
 
 
 tracepoint:syscalls:sys_enter_recvfrom 
-{ 
-    if (pid != 698) {
-        return;
-    }
+{
+    // if (comm == "bpftrace" || comm == "which" || comm == "sleep" || comm == "sshd" || comm == "node") {return;}
+    // if (comm == "sudo" || comm == "ps" || comm == "git") {return;}
+    // if (comm == "otelcol-contrib" || comm == "cat" || comm == "containerd" || comm == "all-in-one-linu" || comm == "cpuUsage.sh") {return;}
+    // if (comm == "multipathd" || comm == "sed" || comm == "dockerd" || comm == "systemd") {return;}
+
     printf("%d - %s - ", pid, comm);
-    printf("fd: %d, ubuf: 0x%08lx, size: %d, flags: %d, addr: 0x%08lx, addr_len: %d\n", ((args->fd)), ((args->ubuf)), ((args->size)), ((args->flags)), ((args->addr)), (*(args->addr_len))); 
+    printf("size: %d - ", (args->size));
+    printf("fd: %d - ", (args->fd));
+    printf("%d - ", (args->addr_len)[0]);
+    printf("%d - ", (struct sockaddr * )(args->addr));
+    // printf("fd: %d, ubuf: 0x%08lx, size: %d, flags: %d, addr: 0x%08lx, addr_len: %d\n", ((args->fd)), ((args->ubuf)), ((args->size)), ((args->flags)), ((args->addr)), (*(args->addr_len))); 
+    printf("\n");
 }
-/*
+
+tracepoint:syscalls:sys_enter_recvfrom
+    int __syscall_nr
+    int fd
+    void * ubuf
+    size_t size
+    unsigned int flags
+    struct sockaddr * addr
+    int * addr_len
+struct sockaddr {
+        sa_family_t sa_family;
+        char sa_data[14];
+};
 */
+
 // BEGIN { @start = nsecs; }
 
 /*

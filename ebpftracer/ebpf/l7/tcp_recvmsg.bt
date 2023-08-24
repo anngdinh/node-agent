@@ -1,0 +1,228 @@
+kprobe:tcp_recvmsg
+{
+    if (comm == "bpftrace" || comm == "which" || comm == "sleep" || comm == "sshd" || comm == "node") {return;}
+    if (comm == "sudo" || comm == "ps" || comm == "git") {return;}
+    if (comm == "otelcol-contrib" || comm == "cat" || comm == "containerd" || comm == "all-in-one-linu" || comm == "cpuUsage.sh") {return;}
+    if (comm == "multipathd" || comm == "sed" || comm == "dockerd" || comm == "systemd") {return;}
+
+    // printf(" pid: %d", pid);
+    // printf(" size: %d", arg2);
+    
+    // printf(" msg_namelen: %d", (((struct msghdr *)arg1)->msg_namelen) );
+    // printf(" msg_name: %d", (((struct msghdr *)arg1)->msg_name) );
+    // printf(" msg_name: %r", buf(((struct msghdr *)arg1)->msg_name, 10) );
+    // printf(" msg_control_is_user: %d", (((struct msghdr *)arg1)->msg_control_is_user));
+    
+    // printf(" msg_controllen: %d", (((struct msghdr *)arg1)->msg_controllen));
+    // printf(" msg_controllen: %r", buf((((struct msghdr *)arg1)->msg_controllen), 10));
+    
+    // printf(" msg_control_user: %d", (((struct msghdr *)arg1)->msg_control_user));
+    // printf(" msg_control_user: %r", buf(((struct msghdr *)arg1)->msg_control_user, 10));
+    
+    // printf(" msg_flags: %d", (((struct msghdr *)arg1)->msg_flags) );
+    printf(" count: %d", ((((struct msghdr *)arg1)->msg_iter)).count );
+
+    //printf(" iov_len: %d", ((((struct msghdr *)arg1)->msg_iter)).iov[0].iov_len );
+    //printf(" iov_len: %d", ((((((struct msghdr *)arg1)->msg_iter)).iov)->iov_len)  );
+    //printf(" iov_base: %d", ((((((struct msghdr *)arg1)->msg_iter)).iov)->iov_base)  );
+    //printf(" iov_base: %r", buf(((((((struct msghdr *)arg1)->msg_iter)).iov)->iov_base), 30)  );
+
+    printf(" iov_base: %r", buf(      ((((((struct msghdr *)arg1)->msg_iter)).iov)->iov_base)   , 30)  );
+
+
+/*
+struct iovec {
+        void *iov_base;
+        __kernel_size_t iov_len;
+};
+*/
+    //            printf("%d\n", ((struct msghdr *)arg1)->msg_iter.iov->iov_len );
+    //            printf("%d\n", ((struct msghdr *)arg1)->msg_iter.iov->iov_base );
+    //buf(args.buff, args.len)
+    //            printf("%r\n", buf(           ((struct msghdr *)arg1)->msg_iter.iov->iov_base, 4              ));
+    //            printf("%s\n", str(           ((struct msghdr *)arg1)->msg_iter.iov->iov_base              ));
+    //printf("%d\n", ((((((struct msghdr *)arg1)->msg_iter)).iov[0].iov_base)) );
+    //printf("%p\n", ((((((struct msghdr *)arg1)->msg_iter)).iov[0].iov_base)) );
+    //printf("%s\n", str((((((struct msghdr *)arg1)->msg_iter)).iov[0].iov_base)) );
+
+
+    
+    // printf("%d\n", ((retval)));
+    // printf("%s\n", str(((struct iovec *)(((struct msghdr *)arg1)->msg_iov[0]))->iov_base));
+    // printf(" kprobe:tcp_recvmsg: %d - %s - \n", pid, comm);
+    // printf("fd: %d, buf: %s, count: %d\n", ((args->fd)), (str(args->buf)), ((args->count)));
+    printf("\n");
+}
+
+
+/*
+struct msghdr {
+        void *msg_name;
+        int msg_namelen;
+        struct iov_iter msg_iter;
+        union {
+                void *msg_control;
+                void *msg_control_user;
+        };
+        bool msg_control_is_user: 1;
+        __kernel_size_t msg_controllen;
+        unsigned int msg_flags;
+        struct kiocb *msg_iocb;
+};
+
+struct iov_iter {
+        u8 iter_type;
+        bool nofault;
+        bool data_source;
+        size_t iov_offset;
+        size_t count;
+        union {
+                const struct iovec *iov;
+                const struct kvec *kvec;
+                const struct bio_vec *bvec;
+                struct xarray *xarray;
+                struct pipe_inode_info *pipe;
+        };
+        union {
+                long unsigned int nr_segs;
+                struct {
+                        unsigned int head;
+                        unsigned int start_head;
+                };
+                loff_t xarray_start;
+        };
+};
+
+struct iovec {
+        void *iov_base;
+        __kernel_size_t iov_len;
+};
+struct kvec {
+        void *iov_base;
+        size_t iov_len;
+};
+struct bio_vec {
+        struct page *bv_page;
+        unsigned int bv_len;
+        unsigned int bv_offset;
+};
+struct xarray {
+        spinlock_t xa_lock;
+        gfp_t xa_flags;
+        void *xa_head;
+};
+struct pipe_inode_info {
+        struct mutex mutex;
+        wait_queue_head_t rd_wait;
+        wait_queue_head_t wr_wait;
+        unsigned int head;
+        unsigned int tail;
+        unsigned int max_usage;
+        unsigned int ring_size;
+        bool note_loss;
+        unsigned int nr_accounted;
+        unsigned int readers;
+        unsigned int writers;
+        unsigned int files;
+        unsigned int r_counter;
+        unsigned int w_counter;
+        bool poll_usage;
+        struct page *tmp_page;
+        struct fasync_struct *fasync_readers;
+        struct fasync_struct *fasync_writers;
+        struct pipe_buffer *bufs;
+        struct user_struct *user;
+        struct watch_queue *watch_queue;
+};
+struct kiocb {
+        struct file *ki_filp;
+        loff_t ki_pos;
+        void (*ki_complete)(struct kiocb *, long int, long int);
+        void *private;
+        int ki_flags;
+        u16 ki_hint;
+        u16 ki_ioprio;
+        union {
+                unsigned int ki_cookie;
+                struct wait_page_queue *ki_waitq;
+        };
+};
+
+struct page {
+        long unsigned int flags;
+        union {
+                struct {
+                        struct list_head lru;
+                        struct address_space *mapping;
+                        long unsigned int index;
+                        long unsigned int private;
+                };
+                struct {
+                        long unsigned int pp_magic;
+                        struct page_pool *pp;
+                        long unsigned int _pp_mapping_pad;
+                        long unsigned int dma_addr;
+                        union {
+                                long unsigned int dma_addr_upper;
+                                atomic_long_t pp_frag_count;
+                        };
+                };
+                struct {
+                        union {
+                                struct list_head slab_list;
+                                struct {
+                                        struct page *next;
+                                        int pages;
+                                        int pobjects;
+                                };
+                        };
+                        struct kmem_cache *slab_cache;
+                        void *freelist;
+                        union {
+                                void *s_mem;
+                                long unsigned int counters;
+                                struct {
+                                        unsigned int inuse: 16;
+                                        unsigned int objects: 15;
+                                        unsigned int frozen: 1;
+                                };
+                        };
+                };
+                struct {
+                        long unsigned int compound_head;
+                        unsigned char compound_dtor;
+                        unsigned char compound_order;
+                        atomic_t compound_mapcount;
+                        unsigned int compound_nr;
+                };
+                struct {
+                        long unsigned int _compound_pad_1;
+                        atomic_t hpage_pinned_refcount;
+                        struct list_head deferred_list;
+                };
+                struct {
+                        long unsigned int _pt_pad_1;
+                        pgtable_t pmd_huge_pte;
+                        long unsigned int _pt_pad_2;
+                        union {
+                                struct mm_struct *pt_mm;
+                                atomic_t pt_frag_refcount;
+                        };
+                        spinlock_t ptl;
+                };
+                struct {
+                        struct dev_pagemap *pgmap;
+                        void *zone_device_data;
+                };
+                struct callback_head callback_head;
+        };
+        union {
+                atomic_t _mapcount;
+                unsigned int page_type;
+                unsigned int active;
+                int units;
+        };
+        atomic_t _refcount;
+        long unsigned int memcg_data;
+};
+*/
