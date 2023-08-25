@@ -14,6 +14,7 @@ int is_mysql_query(char *buf, int buf_size, __u8 *request_type) {
     if (buf_size < 1) {
         return 0;
     }
+    return 1;
     __u8 b[36];
     if (bpf_probe_read(&b, sizeof(b), (void *)((char *)buf)) < 0) {
         return 0;

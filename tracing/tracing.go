@@ -38,9 +38,9 @@ type Connection struct {
 
 func Init(machineId, hostname, version string) {
 	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
-	if endpoint == "" {
-		endpoint := "http://localhost:4318/v1/traces"
-	}
+	// if endpoint == "" {
+	// 	endpoint = "http://localhost:4318/v1/traces"
+	// }
 	
 	if endpoint == "" {
 		klog.Infoln("no OpenTelemetry collector endpoint configured")
@@ -66,8 +66,10 @@ func Init(machineId, hostname, version string) {
 	tracer = tracerProvider.Tracer("coroot-node-agent", trace.WithInstrumentationVersion(version))
 }
 
-func HandleL7Request(containerId string, src netaddr.IPPort, dest netaddr.IPPort, r *ebpftracer.L7Request, preparedStatements map[string]string, c *Connection) {
+func HandleL7Request(containerId string, r *ebpftracer.L7Request, preparedStatements map[string]string, c *Connection) {
+	klog.Info("-------------- HandleL7Request")
 	if tracer == nil {
+		klog.Info("-------------- No tracer")
 		return
 	}
 	end := time.Now()
@@ -75,10 +77,10 @@ func HandleL7Request(containerId string, src netaddr.IPPort, dest netaddr.IPPort
 
 	attrs := []attribute.KeyValue{
 		semconv.ContainerID(containerId),
-		semconv.NetPeerName(src.IP().String()),
-		semconv.NetPeerPort(int(src.Port())),
-		semconv.NetHostName(dest.IP().String()),
-		semconv.NetHostPort(int(dest.Port())),
+		// semconv.NetPeerName(src.IP().String()),
+		// semconv.NetPeerPort(int(src.Port())),
+		// semconv.NetHostName(dest.IP().String()),
+		// semconv.NetHostPort(int(dest.Port())),
 	}
 	switch r.Protocol {
 	case ebpftracer.L7ProtocolMysql:

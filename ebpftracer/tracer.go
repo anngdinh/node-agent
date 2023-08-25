@@ -128,6 +128,7 @@ func (r *L7Request) StatusString() string {
 type Event struct {
 	Type      EventType
 	Reason    EventReason
+	Id       uint64
 	Pid       uint32
 	SrcAddr   netaddr.IPPort
 	DstAddr   netaddr.IPPort
@@ -325,11 +326,13 @@ type tcpEvent struct {
 	Pid       uint32
 	SPort     uint16
 	DPort     uint16
+	Id     uint16
 	SAddr     [16]byte
 	DAddr     [16]byte
 }
 
 func (e tcpEvent) Event() Event {
+	fmt.Println("---------- ", e.Id, e.Pid)
 	return Event{
 		Type:      EventType(e.Type),
 		Pid:       e.Pid,
@@ -350,21 +353,25 @@ func (e fileEvent) Event() Event {
 	return Event{Type: EventType(e.Type), Pid: e.Pid, Fd: e.Fd}
 }
 
+// ...................... use uint8 instead of uint64
 type l7Event struct {
-	// // Fd                  uint64
-	// // ConnectionTimestamp uint64
-	// // Protocol            uint8
-	// // RequestType            uint8
+	Fd                  uint64
+	ConnectionTimestamp uint64
+
+	Pid                 uint32
+	Protocol            uint8
+	RequestType            uint8
+	Padding1             uint16
+
+	Id                 uint64
 	// Pid                 uint64
-	// // Status              uint32
-	// // Duration            uint64
+	Status              uint32
+	StatementId         uint32
+	Duration            uint64
 	Size            uint64
-	// Method              uint8
-	// Padding             uint16
-	// StatementId         uint32
+	Flags            uint64
 
 	Payload             [PayloadSize]byte
-	// Comm             [16]byte
 
 	// Message uint32
 }
@@ -378,9 +385,12 @@ func (e l7Event) Event() Event {
 	if len > 1024 {
 		len = 10
 	}
-	fmt.Print(" size:", e.Size)
-	fmt.Print(" payload:", e.Payload[:10])
-	fmt.Print(" payload:", string(e.Payload[:len]))
+	fmt.Print(" Id:", e.Id)
+	// fmt.Print(" Pid:", e.Pid)
+	fmt.Print(" Size:", e.Size)
+	fmt.Print(" Flags:", e.Flags)
+	fmt.Print(" payload:", e.Payload[:20])
+	// fmt.Print(" payload:", string(e.Payload[:len]))
 	// data,_:=json.Marshal(e)
 	// fmt.Print(" data:", string(data))
 	// fmt.Print(" Comm:", string(e.Comm[:16]))
@@ -388,12 +398,14 @@ func (e l7Event) Event() Event {
 	// return Event{Type: EventTypeL7Request}
 	// return Event{Type: EventTypeL7Request}
 	return Event{Type: EventTypeL7Request, 
-		// Pid: e.Pid, Fd: e.Fd, Timestamp: e.ConnectionTimestamp, 
+		Pid: e.Pid,
+		Id: e.Id,
+		Fd: e.Fd, 
+		Timestamp: e.ConnectionTimestamp, 
 		L7Request: &L7Request{
-		// Protocol:    L7Protocol(e.Protocol),
-		Protocol:    L7Protocol(L7ProtocolMysql),
-		// Status:      int(e.Status),
-		// Duration:    time.Duration(e.Duration),
+		Protocol:    L7Protocol(e.Protocol),
+		Status:      int(e.Status),
+		Duration:    time.Duration(e.Duration),
 		// Method:      L7Method(e.Method),
 		// StatementId: e.StatementId,
 		Payload:     e.Payload,

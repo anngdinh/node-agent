@@ -140,25 +140,8 @@ int sys_exit_sendto(struct trace_event_raw_sys_exit_rw__stub* ctx) {
         return 0;
     }
     
-    // req->pid = bpf_get_current_pid_tgid();
     req->size = args->size;
-    // req->protocol = PROTOCOL_UNKNOWN;
-    
-    // char comm[TASK_COMM_LEN];
-    // bpf_get_current_comm(&comm, sizeof(comm));
 
-    // if (comm[0] != 'c' || comm[1] != 'o' || comm[2] != 'n' || comm[3] != 'n' || comm[4] != 'e' || comm[5] != 'c') return 0;
-    // bpf_probe_read(req->comm, TASK_COMM_LEN, comm);
-
-    // if (is_mysql_query((char *)ctx->ubuf, ctx->size, &req->request_type)) {
-    //     req->protocol = PROTOCOL_MYSQL;
-    // } 
-    // if (req->protocol == PROTOCOL_UNKNOWN) {
-    //     return 0;
-    // }
-
-    // get comm (ex: systemd, ps, connection,...)
-    
 
     // copy payload
     bpf_probe_read(req->payload, MAX_PAYLOAD_SIZE, args->buf);

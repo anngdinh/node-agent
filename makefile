@@ -40,8 +40,11 @@ arg:
 	# /home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_openat
 	# /home/stackops/bpftrace -lv kprobe:tcp_sendmsg
 	# /home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_recvfrom
-	/home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_close
-	/home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_connect
+	/home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_sendto
+	# /home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_close
+	# /home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_connect
+	# /home/stackops/bpftrace -lv tracepoint:sock:inet_sock_set_state
+	# /home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_socket
 	# /home/stackops/bpftrace -lv tracepoint:syscalls:sys_enter_read
 	# /home/stackops/bpftrace -lv "struct path"
 	# /home/stackops/bpftrace -lv "struct sockaddr"
@@ -62,7 +65,9 @@ arg:
 
 bpftrace:
 	# ./bpftrace ./ebpftracer/ebpf/l7/sys_enter_recvfrom.bt
+	./bpftrace ./ebpftracer/ebpf/l7/sys_enter_sendto.bt
 	# ./bpftrace ./ebpftracer/ebpf/l7/tcp_recvmsg.bt
+	# ./bpftrace test.bt
+test:
 	./bpftrace test.bt
-
 .PHONY: bpftrace

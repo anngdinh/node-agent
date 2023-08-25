@@ -23,7 +23,7 @@ type Registry struct {
 	events chan ebpftracer.Event
 
 	pidConnMySQL       []uint32
-	ConnectionByPid    map[uint32]*tracing.Connection
+	ConnectionById    map[uint64]*tracing.Connection
 	preparedStatements map[string]string
 }
 
@@ -32,7 +32,7 @@ func NewRegistry(reg prometheus.Registerer, kernelVersion string) (*Registry, er
 	cs := &Registry{
 		reg:             reg,
 		events:          make(chan ebpftracer.Event, 10000),
-		ConnectionByPid: map[uint32]*tracing.Connection{},
+		ConnectionById: map[uint64]*tracing.Connection{},
 
 		pidConnMySQL:       []uint32{},
 		preparedStatements: map[string]string{},
@@ -61,6 +61,7 @@ func (r *Registry) handleEvents(ch <-chan ebpftracer.Event) {
 		select {
 
 		case e, more := <-ch:
+			fmt.Print("")
 			// if e.Type != ebpftracer.EventTypeFileOpen {
 			// if e.Type != ebpftracer.EventTypeFileOpen && e.Type != ebpftracer.EventTypeProcessStart && e.Type != ebpftracer.EventTypeProcessExit {
 			// if e.Type == ebpftracer.EventTypeL7Request {
@@ -81,12 +82,12 @@ func (r *Registry) handleEvents(ch <-chan ebpftracer.Event) {
 
 			switch e.Type {
 			// case ebpftracer.EventTypeProcessStart:
-			// 	c, seen := r.ConnectionByPid[e.Pid]
+			// 	c, seen := r.ConnectionById[e.Pid]
 			// 	switch {
 			// 	case c != nil || seen: // revalidating by cgroup
-			// 		delete(r.ConnectionByPid, e.Pid)
+			// 		delete(r.ConnectionById, e.Pid)
 			// 	}
-			// 	r.ConnectionByPid[e.Pid] = &Connection{
+			// 	r.ConnectionById[e.Pid] = &Connection{
 			// 		Pid:       e.Pid,
 			// 		SrcAddr:   e.SrcAddr,
 			// 		DstAddr:   e.DstAddr,
@@ -94,21 +95,21 @@ func (r *Registry) handleEvents(ch <-chan ebpftracer.Event) {
 			// 		Timestamp: e.Timestamp,
 			// 	}
 			// case ebpftracer.EventTypeProcessExit:
-			// 	delete(r.ConnectionByPid, e.Pid)
+			// 	delete(r.ConnectionById, e.Pid)
 
 			case ebpftracer.EventTypeConnectionOpen:
-				if e.DstAddr.String()[len(e.DstAddr.String())-4:] == "3306" {
-					if c, seen := r.ConnectionByPid[e.Pid]; c != nil || seen {
-						delete(r.ConnectionByPid, e.Pid)
+				// if e.DstAddr.String()[len(e.DstAddr.String())-4:] == "3306" {
+					if c, seen := r.ConnectionById[e.Id]; c != nil || seen {
+						delete(r.ConnectionById, e.Id)
 					}
-					r.ConnectionByPid[e.Pid] = &tracing.Connection{
+					r.ConnectionById[e.Id] = &tracing.Connection{
 						Pid:       e.Pid,
-						SrcAddr:   e.SrcAddr,
-						DstAddr:   e.DstAddr,
-						Fd:        e.Fd,
-						Timestamp: e.Timestamp,
+						// SrcAddr:   e.SrcAddr,
+						// DstAddr:   e.DstAddr,
+						// Fd:        e.Fd,
+						// Timestamp: e.Timestamp,
 					}
-				}
+				// }
 			// case ebpftracer.EventTypeConnectionError:
 			// 	if c := r.getOrCreateContainer(e.Pid); c != nil {
 			// 		c.onConnectionOpen(e.Pid, e.Fd, e.SrcAddr, e.DstAddr, 0, true)
@@ -130,12 +131,23 @@ func (r *Registry) handleEvents(ch <-chan ebpftracer.Event) {
 			// 		}
 			// 	}
 			case ebpftracer.EventTypeL7Request:
-				// klog.Info("--------- EventTypeL7Request: ", e.Pid, " ", e.Fd, " ", e.Timestamp, " ", e.Reason, " ", e.Type, " ", e.SrcAddr, " ", e.DstAddr, " ", e.L7Request.Protocol)
 				if e.L7Request == nil {
 					continue
 				}
-				// if c := r.ConnectionByPid[e.Pid]; c != nil {
-					r.onL7Request(e.Pid, e.Fd, e.Timestamp, e.L7Request)
+				if c, seen := r.ConnectionById[e.Id]; c != nil || seen {
+					delete(r.ConnectionById, e.Id)
+				}
+				r.ConnectionById[e.Id] = &tracing.Connection{
+					Pid:       e.Pid,
+					// SrcAddr:   e.SrcAddr,
+					// DstAddr:   e.DstAddr,
+					// Fd:        e.Fd,
+					// Timestamp: e.Timestamp,
+
+				}
+				// klog.Info("--------- EventTypeL7Request: ")
+				// if c := r.ConnectionById[e.Pid]; c != nil {
+					r.onL7Request(e.Id, e.Fd, e.Timestamp, e.L7Request)
 				// } else {
 				// 	klog.Infof("--------- no container found for pid:", e.Pid)
 				// }
@@ -144,9 +156,9 @@ func (r *Registry) handleEvents(ch <-chan ebpftracer.Event) {
 	}
 }
 
-func (r *Registry) onL7Request(pid uint32, fd uint64, timestamp uint64, re *ebpftracer.L7Request) {
+func (r *Registry) onL7Request(Id uint64, fd uint64, timestamp uint64, re *ebpftracer.L7Request) {
 	klog.Info("-------------- onL7Request")
-	c := r.ConnectionByPid[pid]
+	c := r.ConnectionById[Id]
 
-	tracing.HandleL7Request("mysql.process", c.SrcAddr, c.DstAddr, re, r.preparedStatements, c)
+	tracing.HandleL7Request("mysql.process", re, r.preparedStatements, c)
 }

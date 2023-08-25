@@ -1,24 +1,57 @@
-tracepoint:syscalls:sys_enter_connect
+/*tracepoint:syscalls:sys_enter_connect
 {
     if (comm != "connection") {return;}
+    //printf("%d - ", ((struct sockaddr * )(args->uservaddr))->sa_data);
+    //printf("%d - ", (((struct sockaddr * )(args->uservaddr))->sa_family));
+    //printf("%s - ", (((struct sockaddr * )(args->uservaddr))->sa_data));
     printf("tracepoint:syscalls:sys_enter_connect: %d - %d - %s - \n", pid, tid, comm);
     // printf("fd: %d, buf: %s, count: %d\n", ((args->fd)), (str(args->buf)), ((args->count)));
 }
 
-tracepoint:syscalls:sys_enter_close
+    int __syscall_nr
+    int fd
+    struct sockaddr * uservaddr
+    int addrlen
+*/
+/*
+tracepoint:syscalls:sys_enter_socket
 {
     if (comm != "connection") {return;}
-    printf("tracepoint:syscalls:sys_enter_close: %d - %d - %s - \n", pid, tid, comm);
+    printf("tracepoint:syscalls:sys_enter_socket: %d - %d - %s - %d - %d - %d - \n", pid, tid, comm, args->family, args->type, args->protocol);
     // printf("fd: %d, buf: %s, count: %d\n", ((args->fd)), (str(args->buf)), ((args->count)));
 }
-
+tracepoint:syscalls:sys_enter_socketpair
+{
+    if (comm != "connection") {return;}
+    printf("tracepoint:syscalls:sys_enter_socketpair: %d - %d - %s - \n", pid, tid, comm);
+    // printf("fd: %d, buf: %s, count: %d\n", ((args->fd)), (str(args->buf)), ((args->count)));
+}
+tracepoint:syscalls:sys_enter_accept
+{
+    if (comm != "connection") {return;}
+    printf("tracepoint:syscalls:sys_enter_accept: %d - %d - %s - \n", pid, tid, comm);
+    // printf("fd: %d, buf: %s, count: %d\n", ((args->fd)), (str(args->buf)), ((args->count)));
+} */
+tracepoint:syscalls:sys_enter_sendto
+{
+    if (comm != "connection") {return;}
+    printf(" fd: %d - ", (args->fd));
+    printf(" len: %d - ", (args->len));
+    printf(" flags: %d - ", (args->flags));
+    printf(" addr_len: %d - ", (args->addr_len));
+    printf("tracepoint:syscalls:sys_enter_sendto: %d - %d - %s - \n", pid, tid, comm);
+    // printf("fd: %d, buf: %s, count: %d\n", ((args->fd)), (str(args->buf)), ((args->count)));
+}
+/*
 tracepoint:sock:inet_sock_set_state
 {
     printf("tracepoint:sock:inet_sock_set_state: %d - %d - %s - \n", pid, tid, comm);
     // printf("fd: %d, buf: %s, count: %d\n", ((args->fd)), (str(args->buf)), ((args->count)));
 }
 
-/*
+
+
+
 
 
 tracepoint:syscalls:sys_enter_read

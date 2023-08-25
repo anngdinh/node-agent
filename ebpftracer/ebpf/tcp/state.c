@@ -7,6 +7,7 @@ struct tcp_event {
     __u32 pid;
     __u16 sport;
     __u16 dport;
+    __u16 id;
     __u8 saddr[16];
     __u8 daddr[16];
 };
@@ -58,7 +59,7 @@ struct {
     __uint(key_size, sizeof(void *));
     __uint(value_size, sizeof(struct sk_info));
     __uint(max_entries, 10240);
-} sk_info SEC(".maps");
+} sk_infos SEC(".maps");
 
 struct {
     __uint(type, BPF_MAP_TYPE_LRU_HASH);
@@ -90,7 +91,7 @@ int inet_sock_set_state(void *ctx)
         i.pid = pid;
         i.fd = *fdp;
         bpf_map_delete_elem(&fd_by_pid_tgid, &id);
-        bpf_map_update_elem(&sk_info, &args.skaddr, &i, BPF_ANY);
+        bpf_map_update_elem(&sk_infos, &args.skaddr, &i, BPF_ANY);
         return 0;
     }
 
@@ -99,7 +100,7 @@ int inet_sock_set_state(void *ctx)
     __u64 timestamp = 0;
     void *map = &tcp_connect_events;
     if (args.oldstate == BPF_TCP_SYN_SENT) {
-        struct sk_info *i = bpf_map_lookup_elem(&sk_info, &args.skaddr);
+        struct sk_info *i = bpf_map_lookup_elem(&sk_infos, &args.skaddr);
         if (!i) {
             return 0;
         }
@@ -115,7 +116,7 @@ int inet_sock_set_state(void *ctx)
         }
         pid = i->pid;
         fd = i->fd;
-        bpf_map_delete_elem(&sk_info, &args.skaddr);
+        bpf_map_delete_elem(&sk_infos, &args.skaddr);
     }
     if (args.oldstate == BPF_TCP_ESTABLISHED && (args.newstate == BPF_TCP_FIN_WAIT1 || args.newstate == BPF_TCP_CLOSE_WAIT)) {
         pid = 0;
@@ -130,7 +131,7 @@ int inet_sock_set_state(void *ctx)
         map = &tcp_listen_events;
     }
     if (args.oldstate == BPF_TCP_SYN_RECV && args.newstate == BPF_TCP_ESTABLISHED) {
-        // struct sk_info *i = bpf_map_lookup_elem(&sk_info, &args.skaddr);
+        // struct sk_info *i = bpf_map_lookup_elem(&sk_infos, &args.skaddr);
         // // if (!i) {
         // //     return 0;
         // // }
@@ -152,6 +153,7 @@ int inet_sock_set_state(void *ctx)
     e.sport = args.sport;
     e.dport = args.dport;
     e.fd = fd;
+    e.id = id;
     __builtin_memcpy(&e.saddr, &args.saddr_v6, sizeof(e.saddr));
     __builtin_memcpy(&e.daddr, &args.daddr_v6, sizeof(e.saddr));
 
@@ -172,6 +174,10 @@ int sys_enter_connect(void *ctx) {
     if (bpf_probe_read(&args, sizeof(args), ctx) < 0) {
         return 0;
     }
+    char comm[7];
+    bpf_get_current_comm(&comm, sizeof(comm));
+    if (comm[0] != 'c' || comm[1] != 'o' || comm[2] != 'n' || comm[3] != 'n' || comm[4] != 'e' || comm[5] != 'c' || comm[6] != 't') return 0;
+
     __u64 id = bpf_get_current_pid_tgid();
     bpf_map_update_elem(&fd_by_pid_tgid, &id, &args.fd, BPF_ANY);
     struct sk_info k = {};

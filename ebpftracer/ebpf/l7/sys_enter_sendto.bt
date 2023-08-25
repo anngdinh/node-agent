@@ -9,26 +9,26 @@ tracepoint:syscalls:sys_enter_sendto
 
     // printf(" pid:%d", pid);
     // printf(" comm:%s", comm);
-    // printf(" size:%d", (args->size));
+    printf(" len:%d", (args->len));
     // printf(" fd:%d", (args->fd));
-    printf(" ubuf:%d", (args->ubuf));
-    // printf(" ubuf:%s", str((char *)(args->ubuf)));
-    // printf(" ubuf:%r", buf((void *)(args->ubuf)));
-    printf(" ubuf:%r", buf(args->ubuf, 30)  );
+    printf(" buff:%d", (args->buff));
+    // printf(" buff:%s", str((char *)(args->buff)));
+    // printf(" buff:%r", buf((void *)(args->buff)));
+    // printf(" buff:%r", buf(args->buff, 30)  );
     // printf(" %d - ", (args->addr_len)[0]);
     // printf(" %d - ", (struct sockaddr * )(args->addr));
-    // printf(" fd: %d, ubuf: 0x%08lx, size: %d, flags: %d, addr: 0x%08lx, addr_len: %d\n", ((args->fd)), ((args->ubuf)), ((args->size)), ((args->flags)), ((args->addr)), (*(args->addr_len))); 
+    // printf(" fd: %d, buff: 0x%08lx, size: %d, flags: %d, addr: 0x%08lx, addr_len: %d\n", ((args->fd)), ((args->buff)), ((args->size)), ((args->flags)), ((args->addr)), (*(args->addr_len))); 
     printf("\n");
 }
 /*
-tracepoint:syscalls:sys_enter_recvfrom
+tracepoint:syscalls:sys_enter_sendto
     int __syscall_nr
     int fd
-    void * ubuf
-    size_t size
+    void * buff
+    size_t len
     unsigned int flags
     struct sockaddr * addr
-    int * addr_len
+    int addr_len
 struct sockaddr {
         sa_family_t sa_family;
         char sa_data[14];
