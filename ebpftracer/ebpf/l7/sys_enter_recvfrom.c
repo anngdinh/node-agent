@@ -77,6 +77,7 @@ struct trace_event_raw_sys_exit_rw__stub {
 };
 
 struct read_args {
+    __u64 ns;
     __u64 fd;
     __u8 protocol;
     __u8 request_type;
@@ -84,7 +85,7 @@ struct read_args {
     __u64 flags;
     char* buf;
     __u64* ret;
-    char lost_byte[LOST_BYTE];
+    char payload[LOST_BYTE];
 };
 
 struct {
@@ -100,6 +101,7 @@ int sys_enter_recvfrom(struct trace_event_raw_sys_enter_rw__stub* ctx) {
     char comm[TASK_COMM_LEN];
     bpf_get_current_comm(&comm, sizeof(comm));
     if (comm[0] != 'c' || comm[1] != 'o' || comm[2] != 'n' || comm[3] != 'n' || comm[4] != 'e' || comm[5] != 'c') return 0;
+    if (ctx->size <= 4) return 0;
 
     struct read_args args = {};
     args.fd = ctx->fd;
@@ -107,7 +109,8 @@ int sys_enter_recvfrom(struct trace_event_raw_sys_enter_rw__stub* ctx) {
     args.flags = ctx->flags;
     args.buf = ctx->buf;
     args.ret = 0;
-    bpf_probe_read(args.lost_byte, LOST_BYTE, ctx->buf);
+    args.ns = bpf_ktime_get_ns();
+    bpf_probe_read(args.payload, LOST_BYTE, ctx->buf);
     bpf_map_update_elem(&active_reads, &id, &args, BPF_ANY);
     return 0;
 }
@@ -117,24 +120,16 @@ SEC("tracepoint/syscalls/sys_exit_recvfrom")
 int sys_exit_recvfrom(struct trace_event_raw_sys_exit_rw__stub* ctx) {
     __u64 pid_tgid = bpf_get_current_pid_tgid();
     __u32 pid = pid_tgid >> 32;
-    // return trace_exit_read(ctx, pid_tgid, pid, 0, ctx->ret);
 
     struct read_args *args = bpf_map_lookup_elem(&active_reads, &pid_tgid);
     if (!args) {
         return 0;
     }
-    bpf_map_delete_elem(&active_reads, &pid_tgid);
-
-    int zero = 0;
-    struct l7_request *req = bpf_map_lookup_elem(&l7_request_heap, &zero);
-    if (!req) {
-        return 0;
-    }
 
     if (args->size <= 4) return 0;
-    // char buf[512];
-    // bpf_probe_read(&buf, LOST_BYTE, args->lost_byte);
-    // bpf_probe_read(&buf + 4, 512 - LOST_BYTE, args->buf);
+    // char buf[MAX_PAYLOAD_SIZE];
+    // bpf_probe_read(&buf, LOST_BYTE, args->payload);
+    // bpf_probe_read(&buf + LOST_BYTE, MAX_PAYLOAD_SIZE - LOST_BYTE, args->buf);
     if (is_mysql_query(args->buf, args->size + 4, &args->request_type)) {
         // if (req->request_type == MYSQL_COM_STMT_CLOSE) {
         //     struct l7_event *e = bpf_map_lookup_elem(&l7_event_heap, &zero);
@@ -152,80 +147,51 @@ int sys_exit_recvfrom(struct trace_event_raw_sys_exit_rw__stub* ctx) {
         //     return 0;
         // }
         args->protocol = PROTOCOL_MYSQL;
-    } else {
-        return 0;
     }
 
-    
-
-    req->size = args->size;
-    req->id = pid_tgid;
-    req->pid = pid;
-    req->flags = args->flags;
-    req->fd = args->fd;
-    req->protocol = args->protocol;
-    req->request_type = args->request_type;
-    
-    // copy payload
-    // bpf_probe_read(req->payload, MAX_PAYLOAD_SIZE, &buf);
-    bpf_probe_read(req->payload, LOST_BYTE, args->lost_byte);
-    bpf_probe_read(req->payload + 4, MAX_PAYLOAD_SIZE - LOST_BYTE, args->buf);
-
-    // send to maps
-    bpf_perf_event_output(ctx, &l7_events, BPF_F_CURRENT_CPU, req, sizeof(*req));
     return 0;
 }
 
 
 
 
-// /* --------------------------------------------- */
-// SEC("tracepoint/syscalls/sys_enter_sendto")
-// int sys_enter_sendto(struct trace_event_raw_sys_enter_rw__stub* ctx) {
-//     __u64 id = bpf_get_current_pid_tgid();
-//     char comm[TASK_COMM_LEN];
-//     bpf_get_current_comm(&comm, sizeof(comm));
-//     if (comm[0] != 'c' || comm[1] != 'o' || comm[2] != 'n' || comm[3] != 'n' || comm[4] != 'e' || comm[5] != 'c') return 0;
-//     // if (ctx->size <= 4) return 0;
+/* --------------------------------------------- */
+SEC("tracepoint/syscalls/sys_enter_sendto")
+int sys_enter_sendto(struct trace_event_raw_sys_enter_rw__stub* ctx) {
+    __u64 pid_tgid = bpf_get_current_pid_tgid();
+    __u32 pid = pid_tgid >> 32;
+    char comm[TASK_COMM_LEN];
+    bpf_get_current_comm(&comm, sizeof(comm));
+    if (comm[0] != 'c' || comm[1] != 'o' || comm[2] != 'n' || comm[3] != 'n' || comm[4] != 'e' || comm[5] != 'c') return 0;
 
-//     struct read_args args = {};
-//     args.fd = ctx->fd;
-//     args.size = ctx->size;
-//     args.buf = ctx->buf;
-//     args.ret = 0;
-//     bpf_map_update_elem(&active_reads, &id, &args, BPF_ANY);
-//     return 0;
-// }
+    struct read_args *args = bpf_map_lookup_elem(&active_reads, &pid_tgid);
+    if (!args) {
+        return 0;
+    }
+    bpf_map_delete_elem(&active_reads, &pid_tgid);
 
-// /* --------------------------------------------- */
-// SEC("tracepoint/syscalls/sys_exit_sendto")
-// int sys_exit_sendto(struct trace_event_raw_sys_exit_rw__stub* ctx) {
-//     __u64 pid_tgid = bpf_get_current_pid_tgid();
-//     __u32 pid = pid_tgid >> 32;
-//     // return trace_exit_read(ctx, pid_tgid, pid, 0, ctx->ret);
+    int zero = 0;
+    __u64 ns = args->ns;
+    struct l7_request *req = bpf_map_lookup_elem(&l7_request_heap, &zero);
+    if (!req) {
+        return 0;
+    }
 
-//     struct read_args *args = bpf_map_lookup_elem(&active_reads, &pid_tgid);
-//     if (!args) {
-//         return 0;
-//     }
-
-//     if (args->size <= 4) return 0;
+    req->size = args->size + LOST_BYTE;
+    req->id = pid_tgid;
+    req->pid = pid;
+    req->flags = args->flags;
+    req->fd = args->fd;
+    req->protocol = args->protocol;
+    req->request_type = args->request_type;
+    req->duration = bpf_ktime_get_ns() - ns;
     
+    // copy payload
+    // bpf_probe_read(req->payload, MAX_PAYLOAD_SIZE, &buf);
+    bpf_probe_read(req->payload, LOST_BYTE, args->payload);
+    bpf_probe_read(req->payload + 4, MAX_PAYLOAD_SIZE - LOST_BYTE, args->buf);
 
-
-//     int zero = 0;
-//     struct l7_request *req = bpf_map_lookup_elem(&l7_request_heap, &zero);
-//     if (!req) {
-//         return 0;
-//     }
-    
-//     req->size = args->size;
-
-
-//     // copy payload
-//     bpf_probe_read(req->payload, MAX_PAYLOAD_SIZE, args->buf);
-
-//     // send to maps
-//     bpf_perf_event_output(ctx, &l7_events, BPF_F_CURRENT_CPU, req, sizeof(*req));
-//     return 0;
-// }
+    // send to maps
+    bpf_perf_event_output(ctx, &l7_events, BPF_F_CURRENT_CPU, req, sizeof(*req));
+    return 0;
+}
