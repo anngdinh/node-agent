@@ -128,7 +128,7 @@ func (r *L7Request) StatusString() string {
 type Event struct {
 	Type      EventType
 	Reason    EventReason
-	Id       uint64
+	Id        uint64
 	Pid       uint32
 	SrcAddr   netaddr.IPPort
 	DstAddr   netaddr.IPPort
@@ -326,7 +326,7 @@ type tcpEvent struct {
 	Pid       uint32
 	SPort     uint16
 	DPort     uint16
-	Id     uint16
+	Id        uint16
 	SAddr     [16]byte
 	DAddr     [16]byte
 }
@@ -357,21 +357,17 @@ func (e fileEvent) Event() Event {
 type l7Event struct {
 	Fd                  uint64
 	ConnectionTimestamp uint64
-
 	Pid                 uint32
-	Protocol            uint8
-	RequestType            uint8
-	Padding1             uint16
-
-	Id                 uint64
-	// Pid                 uint64
 	Status              uint32
-	StatementId         uint32
 	Duration            uint64
-	Size            uint64
-	Flags            uint64
+	Protocol            uint8
+	Method              uint8
+	Padding1            uint16
+	StatementId         uint32
+	Id                  uint64
+	Size                uint64
 
-	Payload             [PayloadSize]byte
+	Payload [PayloadSize]byte
 
 	// Message uint32
 }
@@ -385,10 +381,11 @@ func (e l7Event) Event() Event {
 	if len > 1024 {
 		len = 10
 	}
-	fmt.Print(" Id:", e.Id)
-	// fmt.Print(" Pid:", e.Pid)
-	fmt.Print(" Size:", e.Size)
-	fmt.Print(" Flags:", e.Flags)
+	// fmt.Print(" Id:", e.Id)
+	fmt.Print(" Pid:", e.Pid)
+	// fmt.Print(" Size:", e.Size)
+	fmt.Print(" Duration:", e.Duration)
+	// fmt.Print(" Flags:", e.Flags)
 	fmt.Print(" payload:", e.Payload[:20])
 	// fmt.Print(" payload:", string(e.Payload[:len]))
 	// data,_:=json.Marshal(e)
@@ -397,19 +394,19 @@ func (e l7Event) Event() Event {
 	fmt.Println("")
 	// return Event{Type: EventTypeL7Request}
 	// return Event{Type: EventTypeL7Request}
-	return Event{Type: EventTypeL7Request, 
-		Pid: e.Pid,
-		Id: e.Id,
-		Fd: e.Fd, 
-		Timestamp: e.ConnectionTimestamp, 
+	return Event{Type: EventTypeL7Request,
+		Pid:       e.Pid,
+		Id:        e.Id,
+		Fd:        e.Fd,
+		Timestamp: e.ConnectionTimestamp,
 		L7Request: &L7Request{
-		Protocol:    L7Protocol(e.Protocol),
-		Status:      int(e.Status),
-		Duration:    time.Duration(e.Duration),
-		// Method:      L7Method(e.Method),
-		// StatementId: e.StatementId,
-		Payload:     e.Payload,
-	}}
+			Protocol: L7Protocol(e.Protocol),
+			Status:   int(e.Status),
+			Duration: time.Duration(e.Duration),
+			// Method:      L7Method(e.Method),
+			// StatementId: e.StatementId,
+			Payload: e.Payload,
+		}}
 
 }
 
