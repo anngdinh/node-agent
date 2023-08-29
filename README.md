@@ -105,4 +105,22 @@ mkdir bpftrace/build; cd bpftrace/build;
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j8
 sudo make install
+
+# inet_sock_set_state
+tracepoint:sock:inet_sock_set_state: 0 - 0 - swapper/1 - 
+tracepoint:sock:inet_sock_set_state: 0 - 0 - swapper/1 - 
+
+tracepoint:sock:inet_sock_set_state: 0 - 0 - swapper/1 - 
+tracepoint:sock:inet_sock_set_state: 698 - 796587 - connection - 
+tracepoint:sock:inet_sock_set_state: 698 - 796587 - connection - 
+tracepoint:sock:inet_sock_set_state: 0 - 0 - swapper/1 -
+
+SKADDR           PID     COMM       LADDR           LPORT RADDR           RPORT OLDSTATE    -> NEWSTATE    MS
+ffff981a459108c0 0       swapper/1  0.0.0.0         3306  0.0.0.0         0     LISTEN      -> SYN_RECV    0.000
+ffff981a459108c0 0       swapper/1  10.76.0.15      3306  1.53.255.140    5997  SYN_RECV    -> ESTABLISHED 0.032
+
+ffff981a459108c0 0       swapper/1  10.76.0.15      3306  1.53.255.140    5997  ESTABLISHED -> CLOSE_WAIT  14186.908
+ffff981a459108c0 698     connection 10.76.0.15      3306  1.53.255.140    5997  CLOSE_WAIT  -> LAST_ACK    0.202
+ffff981a459108c0 698     connection 10.76.0.15      3306  1.53.255.140    5997  LAST_ACK    -> LAST_ACK    0.020
+ffff981a459108c0 0       swapper/1  10.76.0.15      3306  1.53.255.140    5997  LAST_ACK    -> CLOSE       8.160
 ```
